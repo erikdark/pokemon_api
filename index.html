@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -30,7 +31,6 @@
 <body>
     <h1>Pokémon List</h1>
     
-    
     <select id="typeFilter" onchange="filterPokemons()">
         <option value="fire">Fire</option>
         <option value="water">Water</option>
@@ -41,7 +41,6 @@
 
     <div id="pokemonList"></div>
     
-   
     <audio id="pokemonMusic" autoplay loop>
         <source src="https://zvukipro.com/uploads/files/2023-10/1696399068_pokemon-theme-song.mp3" type="audio/mp3">
         Ваш браузер не поддерживает элемент audio.
@@ -50,30 +49,45 @@
     <script>
         let allPokemons = [];
 
-       
+        // Функция для получения списка покемонов через API
         async function fetchPokemons() {
-            const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=20');
-            const data = await response.json();
-            const pokemonList = data.results;
+            try {
+                const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=20');
+                if (!response.ok) {
+                    throw new Error(`Ошибка сети: ${response.status}`);
+                }
+                const data = await response.json();
+                const pokemonList = data.results;
 
-            allPokemons = [];
-            for (const pokemon of pokemonList) {
-                const pokemonData = await fetch(pokemon.url);
-                const pokemonJson = await pokemonData.json();
-                const pokemonDetails = {
-                    name: pokemonJson.name,
-                    types: pokemonJson.types.map(type => type.type.name),
-                    image: pokemonJson.sprites.front_default
-                };
-                allPokemons.push(pokemonDetails);
+                allPokemons = [];
+                for (const pokemon of pokemonList) {
+                    const pokemonData = await fetch(pokemon.url);
+                    if (!pokemonData.ok) {
+                        throw new Error(`Ошибка получения данных покемона: ${pokemonData.status}`);
+                    }
+                    const pokemonJson = await pokemonData.json();
+                    const pokemonDetails = {
+                        name: pokemonJson.name,
+                        types: pokemonJson.types.map(type => type.type.name),
+                        image: pokemonJson.sprites.front_default
+                    };
+                    allPokemons.push(pokemonDetails);
+                }
+                renderPokemons(allPokemons);
+            } catch (error) {
+                console.error("Ошибка при получении данных покемонов:", error);
             }
-            renderPokemons(allPokemons); 
         }
 
-        
+        // Функция для отображения покемонов на сайте
         function renderPokemons(pokemons) {
             const pokemonListElement = document.getElementById('pokemonList');
             pokemonListElement.innerHTML = '';
+
+            if (pokemons.length === 0) {
+                pokemonListElement.innerHTML = 'Нет доступных покемонов.';
+                return;
+            }
 
             pokemons.forEach(pokemon => {
                 const pokemonDiv = document.createElement('div');
@@ -87,14 +101,14 @@
             });
         }
 
-        
+        // Функция для фильтрации покемонов по типу
         function filterPokemons() {
             const selectedType = document.getElementById('typeFilter').value;
             const filteredPokemons = allPokemons.filter(pokemon => pokemon.types.includes(selectedType));
             renderPokemons(filteredPokemons);
         }
 
-        
+        // Загружаем покемонов при загрузке страницы
         window.onload = fetchPokemons;
     </script>
 </body>
