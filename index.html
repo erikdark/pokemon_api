@@ -1,48 +1,95 @@
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokemon Info</title>
+    <title>Pokémon Info</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #pokemonList {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .pokemon {
+            width: 150px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        .pokemon img {
+            width: 100px;
+            height: 100px;
+        }
+        #typeFilter {
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
     <h1>Pokémon List</h1>
     
+    <!-- Выпадающий список для фильтрации по типам -->
     <select id="typeFilter" onchange="filterPokemons()">
         <option value="fire">Fire</option>
         <option value="water">Water</option>
         <option value="grass">Grass</option>
+        <option value="electric">Electric</option>
+        <option value="bug">Bug</option>
     </select>
 
     <div id="pokemonList"></div>
     
     <script>
+        let allPokemons = [];
+
+        // Функция для получения списка покемонов через API
         async function fetchPokemons() {
-            const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=10');
+            const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=20');
             const data = await response.json();
             const pokemonList = data.results;
 
-            let listHtml = '';
-            pokemonList.forEach(pokemon => {
-                listHtml += `<div id="pokemon-${pokemon.name}" class="pokemon" onclick="getPokemonInfo('${pokemon.name}')">
-                                <h3>${pokemon.name}</h3>
-                            </div>`;
+            allPokemons = [];
+            for (const pokemon of pokemonList) {
+                const pokemonData = await fetch(pokemon.url);
+                const pokemonJson = await pokemonData.json();
+                const pokemonDetails = {
+                    name: pokemonJson.name,
+                    types: pokemonJson.types.map(type => type.type.name),
+                    image: pokemonJson.sprites.front_default
+                };
+                allPokemons.push(pokemonDetails);
+            }
+            renderPokemons(allPokemons); // Отображаем покемонов после получения данных
+        }
+
+        // Функция для отображения покемонов на сайте
+        function renderPokemons(pokemons) {
+            const pokemonListElement = document.getElementById('pokemonList');
+            pokemonListElement.innerHTML = ''; // Очистка текущего списка
+
+            pokemons.forEach(pokemon => {
+                const pokemonDiv = document.createElement('div');
+                pokemonDiv.classList.add('pokemon');
+                pokemonDiv.innerHTML = `
+                    <img src="${pokemon.image}" alt="${pokemon.name}">
+                    <h3>${pokemon.name}</h3>
+                    <p>Types: ${pokemon.types.join(', ')}</p>
+                `;
+                pokemonListElement.appendChild(pokemonDiv);
             });
-            document.getElementById('pokemonList').innerHTML = listHtml;
         }
 
-        async function getPokemonInfo(pokemonName) {
-            const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`);
-            const data = await response.json();
-            alert(`Name: ${data.name}\nTypes: ${data.types.map(type => type.type.name).join(', ')}`);
-        }
-
+        // Функция для фильтрации покемонов по типу
         function filterPokemons() {
-            const type = document.getElementById('typeFilter').value;
-            
+            const selectedType = document.getElementById('typeFilter').value;
+            const filteredPokemons = allPokemons.filter(pokemon => pokemon.types.includes(selectedType));
+            renderPokemons(filteredPokemons);
         }
 
-        fetchPokemons();
+        // Загружаем покемонов при загрузке страницы
+        window.onload = fetchPokemons;
     </script>
 </body>
 </html>
